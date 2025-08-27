@@ -38,8 +38,12 @@ def streamlit_app():
         data = fetch_financial_data(ticker, start_date, end_date)
         data = rolling_average(data, 30)        
         if not data.empty:
+
             plot_financial_data(data, ticker)
         else:
             st.error("No data found for the given ticker and date range.")
+
+if __name__ == "__main__":
+    streamlit_app()
     
 
