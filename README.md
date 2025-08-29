@@ -1,6 +1,6 @@
 ## Overview
 
-This code is a Streamlit application that fetches and displays financial data for a given ticker symbol. It uses the yfinance library to download stock data and Plotly for visualization. The user can input a ticker symbol, start date, and end date to fetch the data. It also allows the user to calculate and visualize a rolling average of the closing prices. The application is interactive and provides a user-friendly interface for financial data analysis. 
+This code is a Streamlit application that fetches and displays financial data for a given ticker symbol. It uses the yfinance library to download stock data and Plotly for visualization. The user can input a ticker symbol, start date, and end date to fetch the data. It also allows the user to calculate and visualize a rolling average of the closing prices. The application is interactive and provides a user-friendly interface for financial data analysis.
 
 ## How to Run
 
@@ -23,14 +23,12 @@ This code is a Streamlit application that fetches and displays financial data fo
    - The application will automatically open in your default web browser
    - If it doesn't open automatically, navigate to `http://localhost:8501`
 
+## Screenshot
+
+![App UI screenshot](assets/dashboard.png)
+
 
 ```
-
-### Usage
-1. Enter a stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
-2. Select start and end dates for the data range
-3. Click "Fetch Data" to display the stock price chart with rolling average
-
 ### Dependencies
 - `streamlit` - Web application framework
 - `yfinance` - Yahoo Finance data downloader
