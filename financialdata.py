@@ -5,7 +5,7 @@ import streamlit as st
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="Advanced Financial Dashboard",
+    page_title="Advanced Financial Data Dashboard",
     page_icon="📈",
     layout="wide"
 )
