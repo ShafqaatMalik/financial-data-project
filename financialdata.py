@@ -16,17 +16,6 @@ import plotly.graph_objects as go
 import streamlit as st
 from datetime import datetime, timedelta
 import plotly.express as px
-import pandas as pd
-import yfinance as yf
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-
-# If not present, define plot_comparison_chart (or import if modular)
-# REMOVE THIS DUPLICATE FUNCTION DEFINITION
-# The correct version is defined below.
-import streamlit as st
-from datetime import datetime, timedelta
-import plotly.express as px
 def fetch_financial_data(ticker,start_date,end_date):
     """
     Fetch financial data for a given ticker symbol between start and end dates.
@@ -128,37 +117,6 @@ def plot_comparison_chart(data_dict, tickers):
 
         if len(close_series) < 2:
             skipped.append(ticker)
-def plot_comparison_chart(data_dict, tickers):
-    """
-    Plot comparison chart for multiple stocks.
-    """
-    fig = go.Figure()
-
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f']
-
-    any_traces = False
-    skipped = []
-    for i, ticker in enumerate(tickers):
-        if ticker not in data_dict:
-            skipped.append(ticker)
-            continue
-
-        raw = data_dict[ticker]
-        # Extract a safe Close series
-        close_series = _get_close_series(raw)
-        if close_series is None or len(close_series) == 0:
-            skipped.append(ticker)
-            continue
-
-        # Normalize index and clean
-        try:
-            close_series.index = pd.to_datetime(close_series.index).tz_localize(None)
-        except Exception:
-            close_series.index = pd.to_datetime(close_series.index)
-        close_series = close_series.sort_index().dropna()
-
-        if len(close_series) < 2:
-            skipped.append(ticker)
             continue
 
         start_price = float(close_series.iloc[0])
@@ -176,9 +134,6 @@ def plot_comparison_chart(data_dict, tickers):
             name=f'{ticker}',
             line=dict(color=colors[i % len(colors)], width=2),
             hovertemplate=f'<b>{ticker}</b><br><b>Date</b>: %{{x}}<br><b>Return</b>: %{{y:.2f}}%<extra></extra>'
-        # =============================
-        # Data Fetching and Helpers
-        # =============================
         ))
         any_traces = True
 
@@ -214,27 +169,17 @@ def plot_comparison_chart(data_dict, tickers):
         st.warning(f"Skipped tickers (no Close data found): {', '.join(skipped)}")
     else:
         st.plotly_chart(fig, use_container_width=True)
-            # =============================
-            # Streamlit App UI and Main Logic
-            # =============================
-
-    # Removed undefined metrics_data block to fix NameError
 
 def plot_financial_data(data, ticker):
     """
     Plot the financial data for a single ticker symbol with enhanced styling.
     Uses _get_close_series to safely extract prices and handles missing Volume.
     """
-
     close = _get_close_series(data)
-    # Fallback: try first numeric column if Close is missing
-    if (close is None or len(close) < 2) and isinstance(data, pd.DataFrame):
-        numeric_cols = data.select_dtypes(include=['number']).columns
-        if len(numeric_cols) > 0:
-            close = data[numeric_cols[0]]
-    # Always attempt to plot if close is not None and has data
     fig = go.Figure()
+
     if close is not None and len(close) >= 2:
+        # Add Close Price trace
         fig.add_trace(go.Scatter(
             x=pd.to_datetime(close.index).date,
             y=close.values,
@@ -243,6 +188,8 @@ def plot_financial_data(data, ticker):
             line=dict(color='#1f77b4', width=2),
             hovertemplate='<b>Date</b>: %{x}<br><b>Close</b>: $%{y:.2f}<extra></extra>'
         ))
+
+        # Add 30-Day Moving Average trace
         rolling_avg = close.rolling(window=30).mean()
         fig.add_trace(go.Scatter(
             x=pd.to_datetime(rolling_avg.index).date,
@@ -252,92 +199,63 @@ def plot_financial_data(data, ticker):
             line=dict(color='#ff7f0e', width=2, dash='dash'),
             hovertemplate='<b>Date</b>: %{x}<br><b>30-Day MA</b>: $%{y:.2f}<extra></extra>'
         ))
+
+        # Add Volume trace if available
+        if isinstance(data, pd.DataFrame) and 'Volume' in data.columns:
+            vol = data['Volume'].copy()
+            vol.index = pd.to_datetime(vol.index).tz_localize(None)
+            fig.add_trace(go.Bar(
+                x=pd.to_datetime(vol.index).date,
+                y=vol.values,
+                name='Volume',
+                yaxis='y2',
+                opacity=0.3,
+                marker_color='rgba(158,202,225,0.5)',
+                hovertemplate='<b>Date</b>: %{x}<br><b>Volume</b>: %{y:,.0f}<extra></extra>'
+            ))
+
+        # Update layout for a full chart
         fig.update_layout(
-            title=f"📈 {ticker.upper()} Stock Analysis",
+            title={
+                'text': f"📈 {ticker.upper()} Stock Analysis",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 24, 'color': '#2E86AB'}
+            },
             xaxis_title="📅 Date",
             yaxis_title="💰 Price (USD)",
+            yaxis2=dict(
+                title="📊 Volume",
+                overlaying='y',
+                side='right',
+                showgrid=False
+            ),
+            hovermode='x unified',
             template='plotly_white',
             showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
             margin=dict(t=80, b=40, l=40, r=40),
             height=600
         )
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray', type='date')
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
+
     else:
+        # Layout for when there is no data
         fig.update_layout(
             title=f"No valid price data to plot for {ticker}",
             xaxis_title="Date",
             yaxis_title="Price",
             template="plotly_white"
         )
+
     st.plotly_chart(fig, use_container_width=True)
-
-    rolling_avg = close.rolling(window=30).mean()
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=pd.to_datetime(close.index).date,
-        y=close.values,
-        mode='lines',
-        name='Close Price',
-        line=dict(color='#1f77b4', width=2),
-        hovertemplate='<b>Date</b>: %{x}<br><b>Close</b>: $%{y:.2f}<extra></extra>'
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=pd.to_datetime(rolling_avg.index).date,
-        y=rolling_avg.values,
-        mode='lines',
-        name='30-Day Moving Average',
-        line=dict(color='#ff7f0e', width=2, dash='dash'),
-        hovertemplate='<b>Date</b>: %{x}<br><b>30-Day MA</b>: $%{y:.2f}<extra></extra>'
-    ))
-
-    # Add volume if available
-    if isinstance(data, pd.DataFrame) and 'Volume' in data.columns:
-        vol = data['Volume'].copy()
-        vol.index = pd.to_datetime(vol.index).tz_localize(None)
-        fig.add_trace(go.Bar(
-            x=pd.to_datetime(vol.index).date,
-            y=vol.values,
-            name='Volume',
-            yaxis='y2',
-            opacity=0.3,
-            marker_color='rgba(158,202,225,0.5)',
-            hovertemplate='<b>Date</b>: %{x}<br><b>Volume</b>: %{y:,.0f}<extra></extra>'
-        ))
-
-    fig.update_layout(
-        title={
-            'text': f"📈 {ticker.upper()} Stock Analysis",
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 24, 'color': '#2E86AB'}
-        },
-        xaxis_title="📅 Date",
-        yaxis_title="💰 Price (USD)",
-        yaxis2=dict(
-            title="📊 Volume",
-            overlaying='y',
-            side='right',
-            showgrid=False
-        ),
-        hovermode='x unified',
-        template='plotly_white',
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        margin=dict(t=80, b=40, l=40, r=40),
-        height=600
-    )
-
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray', type='date')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
 def create_metrics_dashboard(data, ticker):
     """
     Create a metrics dashboard with key statistics.
